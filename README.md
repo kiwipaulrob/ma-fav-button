@@ -137,7 +137,9 @@ start with the calibration table in the relay comments.
 
 ## Files
 
-- `ma-fav-button-relay.py` — the relay (stdlib only, ~480 lines)
+- `ma-fav-button-relay.py` — the relay (stdlib only, ~340 lines)
+- `tests/test_relay.py` — unit tests (group guard, paused priority,
+  empty-queue guard, dry-run purity); run `python3 -m pytest tests/ -q`
 - `examples/ma-fav-button.service` — systemd unit
 - `examples/configuration-rest-command.yaml` — HA `rest_command`
 - `examples/ha-automations.yaml` — button automation (+ parked lean)

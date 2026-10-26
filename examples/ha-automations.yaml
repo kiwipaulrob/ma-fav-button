@@ -8,6 +8,12 @@
   - id: dashboard
     trigger: state
     entity_id: input_button.fav_this_song
+    not_from:
+    - unavailable
+    - unknown
+    not_to:
+    - unavailable
+    - unknown
   - id: single
     trigger: device
     device_id: ZIGBEE_DEVICE_ID
