@@ -1,0 +1,73 @@
+# Append to HA automations.yaml, then Automations -> Reload (no restart).
+# Replace ZIGBEE_DEVICE_ID with your button's MQTT device id and
+# input_button.fav_this_song with your dashboard button (or drop it).
+
+- id: fav_this_song_button
+  alias: Favourite this song (dashboard or Zigbee button)
+  triggers:
+  - id: dashboard
+    trigger: state
+    entity_id: input_button.fav_this_song
+  - id: single
+    trigger: device
+    device_id: ZIGBEE_DEVICE_ID
+    domain: mqtt
+    type: action
+    subtype: single
+  - id: hold
+    trigger: device
+    device_id: ZIGBEE_DEVICE_ID
+    domain: mqtt
+    type: action
+    subtype: hold
+  - id: double
+    trigger: device
+    device_id: ZIGBEE_DEVICE_ID
+    domain: mqtt
+    type: action
+    subtype: double
+  actions:
+  - action: rest_command.ma_fav_button
+    data:
+      source: '{{ trigger.id }}'
+  mode: single
+
+# --- PARKED EXPERIMENT: lean-to-adjust volume (Tuya TS0601 vibration
+# sensor). Left here as documentation of the trigger shapes tried; the
+# relay-side settle-and-classify loop (LEAN_ENABLE) owns the logic and
+# is currently dormant. Enable only if you revive the experiment.
+- id: lean_volume_control
+  alias: Lean volume control (vibration sensor)
+  triggers:
+  - id: lean_down
+    trigger: numeric_state
+    entity_id: sensor.volume_x
+    below: 100
+    for: "00:00:04"
+  - id: lean_up
+    trigger: numeric_state
+    entity_id: sensor.volume_y
+    above: 15
+    for: "00:00:04"
+  conditions:
+  - condition: or
+    conditions:
+    - condition: and
+      conditions:
+      - condition: trigger
+        id: lean_down
+      - condition: numeric_state
+        entity_id: sensor.volume_y
+        below: 8
+    - condition: and
+      conditions:
+      - condition: trigger
+        id: lean_up
+      - condition: numeric_state
+        entity_id: sensor.volume_x
+        above: 200
+  actions:
+  - action: rest_command.ma_fav_button
+    data:
+      source: '{{ trigger.id }}'
+  mode: single

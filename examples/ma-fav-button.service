@@ -1,0 +1,12 @@
+[Unit]
+Description=MA favourite-this-song relay (dashboard/Zigbee button)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/ma-fav-button/ma-fav-button-relay.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

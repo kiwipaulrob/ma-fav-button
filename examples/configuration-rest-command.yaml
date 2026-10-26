@@ -1,0 +1,9 @@
+# Append under `rest_command:` in HA configuration.yaml.
+# NOTE: new rest_command entries load ONLY on a full `ha core restart`
+# (no reload service exists) — stage with automations, then restart once.
+  ma_fav_button:
+    url: http://RELAY_HOST:8699/fav-button
+    method: post
+    content_type: application/json
+    payload: "{\"source\": \"{{ source | default('dashboard') }}\"}"
+    timeout: 45
