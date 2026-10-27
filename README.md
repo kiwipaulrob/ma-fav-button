@@ -54,8 +54,8 @@ paused web/Sendspin client looks identical to an idle one.
 | Dimmer twist-while-pressed | Twist right = next track, twist left = previous (double-press is unworkable: fastest achievable pair is ~4 s apart, proven live) |
 | Announce button | Speaks the current song ("Now playing: …") without favouriting — same proportional voice and resume handling |
 
-- **Proportional voice:** the confirmation speaks at 60% of the
-  music's current level (floor of 3/100) instead of a fixed level —
+- **Proportional voice:** the confirmation speaks at 50% of the
+  music's current level (floor of 2/100) instead of a fixed level —
   no more shouting over quiet late-night listening. Ratio and floor
   are constants (`ANN_RATIO`, `ANN_FLOOR`).
 - **Group-aware announcements:** speaks on the device's sync group
