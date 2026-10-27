@@ -100,3 +100,23 @@ def test_dimmer_rotate_left_coerces_string_steps(monkeypatch):
 def test_dimmer_unknown_event_is_noop():
     res = relay.handle_press("dimmer", True, None, "bogus", 1)
     assert res == {"dimmer": False, "reason": "unknown event"}
+
+
+def test_dimmer_double_press_skips(monkeypatch):
+    monkeypatch.setattr(
+        relay, "ma",
+        lambda cmd, args=None, mid="fav", timeout=25: [
+            {"player_id": "moode", "name": "moode-sendspin",
+             "available": True, "state": "playing",
+             "volume_level": 20}])
+    relay._dim_press_at = 0.0
+    r1 = relay.handle_dimmer_press(dry_run=True)
+    assert r1.get("pending") == "single-or-double"
+    r2 = relay.handle_dimmer_press(dry_run=True)
+    assert r2 == {"skipped": False, "dry_run": True, "would": "next",
+                  "player": "moode-sendspin"}
+
+
+def test_dim_press_resolve_stale_is_noop():
+    relay._dim_press_at = 123.0
+    relay._dim_press_resolve(999.0)  # must not raise

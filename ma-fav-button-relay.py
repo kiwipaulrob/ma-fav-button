@@ -38,6 +38,71 @@ LEAN_ENABLE = False  # parked 26 Oct 2026; poll loop stays dormant until True
 LEAN_STEP = 5
 LEAN_POLL_SECONDS = 2
 DIM_STEP = 2  # MA volume points per dimmer rotary step (27 Oct 2026)
+DIM_DOUBLE_WINDOW = 0.8  # max gap (s) between two presses = double-press
+
+
+def handle_dimmer_press(dry_run=False):
+    """Dimmer button with double-press detection: first press waits out
+    DIM_DOUBLE_WINDOW; a second press inside it converts to next-track,
+    otherwise the lone press toggles (800 ms later than a raw toggle)."""
+    global _dim_press_at
+    now = time.monotonic()
+    with _dim_press_lock:
+        if now - _dim_press_at < DIM_DOUBLE_WINDOW:
+            _dim_press_at = 0.0
+            double = True
+        else:
+            _dim_press_at = now
+            double = False
+    if double:
+        return _dim_double(dry_run)
+    if dry_run:
+        return {"dimmer": True, "dry_run": True,
+                "pending": "single-or-double"}
+    t = threading.Timer(DIM_DOUBLE_WINDOW, _dim_press_resolve, args=(now,))
+    t.daemon = True
+    t.start()
+    return {"dimmer": True, "pending": True}
+
+
+def _dim_press_resolve(first_at):
+    """Fire the lone-press toggle if no second press claimed the window."""
+    global _dim_press_at
+    with _dim_press_lock:
+        if _dim_press_at != first_at:
+            return
+        _dim_press_at = 0.0
+    try:
+        handle_toggle("dimmer")
+    except Exception as ex:
+        logging.info("source=dimmer delayed single FAILED %s",
+                     str(ex)[:120])
+
+
+def _dim_double(dry_run=False):
+    """Double-press: next track on the active queue (never paused first,
+    so no resume dance is needed)."""
+    players = ma("players/all", {}, mid="players")
+    fav = resolve_active(players, record_last=not dry_run)
+    if fav is None:
+        logging.info("source=dimmer double: no player")
+        return {"skipped": False, "reason": "no player", "dry_run": dry_run}
+    if dry_run:
+        return {"skipped": False, "dry_run": True,
+                "would": "next", "player": fav.get("name")}
+    try:
+        _queue_cmd("player_queues/next", fav["player_id"], "dimmer",
+                   mid="dimnext")
+    except Exception as ex:
+        err = str(ex)[:100]
+        logging.info("source=dimmer double FAILED %s", err)
+        return {"skipped": False, "reason": err, "player": fav.get("name")}
+    logging.info("source=dimmer double->next player=%s", fav.get("name"))
+    return {"skipped": True, "player": fav.get("name")}
+
+
+_dim_press_at = 0.0
+_dim_press_lock = threading.Lock()
 
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO,
@@ -370,12 +435,14 @@ def handle_press(source, dry_run=False, action=None, event_type=None,
         action = {"rotate_right": "dim_up", "rotate_left": "dim_down",
                   "rotate_right_pressed": "dim_up",
                   "rotate_left_pressed": "dim_down",
-                  "press": "toggle", "long_press": "fav"}.get(event_type)
+                  "press": "dim_press", "long_press": "fav"}.get(event_type)
         if action is None:
             logging.info("source=dimmer unknown event %s", event_type)
             return {"dimmer": False, "reason": "unknown event"}
         if action in ("dim_up", "dim_down"):
             return handle_dimmer(action, steps, dry_run)
+        if action == "dim_press":
+            return handle_dimmer_press(dry_run)
         if action == "toggle":
             return handle_toggle(source, dry_run=dry_run)
         action = "fav"

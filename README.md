@@ -50,7 +50,7 @@ paused web/Sendspin client looks identical to an idle one.
 | Double | Next track on the active queue |
 | Hold / dashboard | Favourite the song + spoken confirmation, then resume the track |
 | Dimmer rotate | Volume ±(steps × 2) on the active device (YLKG08YL event) |
-| Dimmer press / long-press | Play/pause toggle / favourite + voice (same as single/hold) |
+| Dimmer press / long-press | Single press = toggle (800 ms double window), double-press = next track, long-press = favourite + voice |
 
 - **Proportional voice:** the confirmation speaks at 80% of the
   music's current level (floor of 3/100) instead of a fixed level —
