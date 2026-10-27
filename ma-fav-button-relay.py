@@ -33,7 +33,7 @@ GROUP_NAME = "SendSpin"
 ANN_DB = 5       # fallback/idle announce level (no music level to scale to)
 ANN_RATIO = 0.5  # voice at 50% of the current music level (26-27 Oct 2026:
 # fixed levels shout over quiet music; 0.8 then 0.6 still too hot)
-ANN_FLOOR = 2    # voice never below this (whispers stay audible)
+ANN_FLOOR = 1    # voice never below this (whispers stay audible)
 
 LEAN_ENABLE = False  # parked 26 Oct 2026; poll loop stays dormant until True
 LEAN_STEP = 5

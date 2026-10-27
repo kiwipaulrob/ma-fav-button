@@ -55,7 +55,7 @@ paused web/Sendspin client looks identical to an idle one.
 | Announce button | Speaks the current song ("Now playing: …") without favouriting — same proportional voice and resume handling |
 
 - **Proportional voice:** the confirmation speaks at 50% of the
-  music's current level (floor of 2/100) instead of a fixed level —
+  music's current level (floor of 1/100) instead of a fixed level —
   no more shouting over quiet late-night listening. Ratio and floor
   are constants (`ANN_RATIO`, `ANN_FLOOR`).
 - **Group-aware announcements:** speaks on the device's sync group
