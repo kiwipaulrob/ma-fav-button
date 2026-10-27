@@ -52,6 +52,7 @@ paused web/Sendspin client looks identical to an idle one.
 | Dimmer rotate | Volume ±(steps × 2) on the active device (YLKG08YL event) |
 | Dimmer press / long-press | Single press = instant toggle, long-press = favourite + voice |
 | Dimmer twist-while-pressed | Twist right = next track, twist left = previous (double-press is unworkable: fastest achievable pair is ~4 s apart, proven live) |
+| Announce button | Speaks the current song ("Now playing: …") without favouriting — same proportional voice and resume handling |
 
 - **Proportional voice:** the confirmation speaks at 80% of the
   music's current level (floor of 3/100) instead of a fixed level —

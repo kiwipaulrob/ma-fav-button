@@ -382,6 +382,62 @@ def handle_dimmer(action, steps, dry_run=False):
     return {"volume": new, "target": target.get("name")}
 
 
+def handle_announce(source, dry_run=False):
+    """Announce the current song without favouriting: same voice rules
+    (proportional level, group-aware target) and resume handling as the
+    favourite path, minus the library write."""
+    players = ma("players/all", {}, mid="players")
+    fav = resolve_active(players, record_last=not dry_run)
+    if fav is None:
+        return {"announced": False, "reason": "nothing playing",
+                "dry_run": dry_run}
+    grp = announce_target(players, fav)
+    title = title_of(fav.get("current_item")) or title_of(grp.get("current_item"))
+    if not title:
+        try:
+            q = ma("player_queues/get_active_queue",
+                   {"player_id": fav["player_id"]}, mid="queue")
+            title = title_of((q or {}).get("current_item"))
+        except Exception:
+            title = None
+    title = title or "this song"
+    if len(title) > 90:
+        title = title[:87] + "..."
+    msg = f"Now playing: {title}"
+    if dry_run:
+        return {"announced": False, "dry_run": True,
+                "would_announce": msg, "player": fav.get("name")}
+    was_playing = fav.get("state") == "playing"
+    alevel = announce_level(fav)
+    ma("players/cmd/play_announcement",
+       {"player_id": grp["player_id"], "message": msg,
+        "volume_level": alevel, "pre_announce": False}, mid="annA")
+    logging.info("source=%s announce level=%s (music was %s) player=%s",
+                 source, alevel, fav.get("volume_level"), fav.get("name"))
+    resumed = False
+    if was_playing:
+        time.sleep(2)
+        st = None
+        for _ in range(3):
+            try:
+                q_poll = ma("player_queues/get_active_queue",
+                            {"player_id": fav["player_id"]}, mid="queue3") or {}
+                st = q_poll.get("state")
+            except Exception:
+                st = None
+            if st == "playing":
+                break
+            time.sleep(2)
+        if st != "playing":
+            try:
+                resume_queue(source, fav["player_id"], mid="resume")
+                resumed = True
+            except Exception as ex:
+                logging.info("source=%s resume FAILED %s", source, str(ex)[:120])
+    return {"announced": True, "resumed": resumed, "message": msg,
+            "player": fav.get("name")}
+
+
 def handle_press(source, dry_run=False, action=None, event_type=None,
                    steps=1):
     if source == "dimmer":
@@ -404,7 +460,10 @@ def handle_press(source, dry_run=False, action=None, event_type=None,
         action = "fav"
     if action is None:
         action = {"single": "toggle", "double": "next",
-                  "lean_down": "lean", "lean_up": "lean"}.get(source, "fav")
+                  "lean_down": "lean", "lean_up": "lean",
+                  "announce": "announce"}.get(source, "fav")
+    if action == "announce":
+        return handle_announce(source, dry_run=dry_run)
     if action == "lean":
         return handle_lean(source, dry_run=dry_run)
     if action == "toggle":

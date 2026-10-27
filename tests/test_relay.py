@@ -115,3 +115,25 @@ def test_dimmer_twist_skips_tracks(monkeypatch):
     r = relay.handle_press("dimmer", True, None, "rotate_left_pressed", 1)
     assert r == {"skipped": False, "dry_run": True, "would": "previous",
                  "player": "moode-sendspin"}
+
+
+def test_announce_only_does_not_favourite(monkeypatch):
+    calls = []
+
+    def fake_ma(cmd, args=None, mid="fav", timeout=25):
+        calls.append(cmd)
+        if cmd == "players/all":
+            return [{"player_id": "moode", "name": "moode-sendspin",
+                     "available": True, "state": "playing",
+                     "volume_level": 20,
+                     "current_item": {"name": "Test Track",
+                                      "artists": [{"name": "Tester"}]}}]
+        if cmd == "player_queues/get_active_queue":
+            return {"state": "playing", "current_index": 3}
+        return {}
+
+    monkeypatch.setattr(relay, "ma", fake_ma)
+    res = relay.handle_press("announce", dry_run=False)
+    assert res["announced"] is True
+    assert "players/add_currently_playing_to_favorites" not in calls
+    assert res["message"].startswith("Now playing:")
