@@ -442,11 +442,12 @@ def handle_press(source, dry_run=False, action=None, event_type=None,
                    steps=1):
     if source == "dimmer":
         # YLKG08YL rotary/button events (27 Oct 2026). press reuses the
-        # button toggle, long_press reuses hold-to-favourite.
+        # button toggle; long_press announces (favourite stays on the
+        # Zigbee hold + dashboard - every function exactly one home).
         action = {"rotate_right": "dim_up", "rotate_left": "dim_down",
                   "rotate_right_pressed": "dim_next",
                   "rotate_left_pressed": "dim_prev",
-                  "press": "toggle", "long_press": "fav"}.get(event_type)
+                  "press": "toggle", "long_press": "announce"}.get(event_type)
         if action is None:
             logging.info("source=dimmer unknown event %s", event_type)
             return {"dimmer": False, "reason": "unknown event"}
@@ -457,7 +458,8 @@ def handle_press(source, dry_run=False, action=None, event_type=None,
                              dry_run)
         if action == "toggle":
             return handle_toggle(source, dry_run=dry_run)
-        action = "fav"
+        if action != "announce":
+            action = "fav"
     if action is None:
         action = {"single": "toggle", "double": "next",
                   "lean_down": "lean", "lean_up": "lean",

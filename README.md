@@ -50,7 +50,7 @@ paused web/Sendspin client looks identical to an idle one.
 | Double | Next track on the active queue |
 | Hold / dashboard | Favourite the song + spoken confirmation, then resume the track |
 | Dimmer rotate | Volume ±(steps × 2) on the active device (YLKG08YL event) |
-| Dimmer press / long-press | Single press = instant toggle, long-press = favourite + voice |
+| Dimmer press / long-press | Single press = instant toggle, long-press = announce current song (favourite stays on Zigbee hold + dashboard) |
 | Dimmer twist-while-pressed | Twist right = next track, twist left = previous (double-press is unworkable: fastest achievable pair is ~4 s apart, proven live) |
 | Announce button | Speaks the current song ("Now playing: …") without favouriting — same proportional voice and resume handling |
 

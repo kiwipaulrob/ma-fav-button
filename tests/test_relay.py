@@ -137,3 +137,23 @@ def test_announce_only_does_not_favourite(monkeypatch):
     assert res["announced"] is True
     assert "players/add_currently_playing_to_favorites" not in calls
     assert res["message"].startswith("Now playing:")
+
+
+def test_dimmer_long_press_announces_without_favouriting(monkeypatch):
+    calls = []
+
+    def fake_ma(cmd, args=None, mid="fav", timeout=25):
+        calls.append(cmd)
+        if cmd == "players/all":
+            return [{"player_id": "moode", "name": "moode-sendspin",
+                     "available": True, "state": "playing",
+                     "volume_level": 20,
+                     "current_item": {"name": "T", "artists": [{"name": "A"}]}}]
+        if cmd == "player_queues/get_active_queue":
+            return {"state": "playing", "current_index": 1}
+        return {}
+
+    monkeypatch.setattr(relay, "ma", fake_ma)
+    res = relay.handle_press("dimmer", False, None, "long_press", 1)
+    assert res["announced"] is True
+    assert "players/add_currently_playing_to_favorites" not in calls
