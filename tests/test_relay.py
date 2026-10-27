@@ -102,21 +102,16 @@ def test_dimmer_unknown_event_is_noop():
     assert res == {"dimmer": False, "reason": "unknown event"}
 
 
-def test_dimmer_double_press_skips(monkeypatch):
+def test_dimmer_twist_skips_tracks(monkeypatch):
     monkeypatch.setattr(
         relay, "ma",
         lambda cmd, args=None, mid="fav", timeout=25: [
             {"player_id": "moode", "name": "moode-sendspin",
              "available": True, "state": "playing",
              "volume_level": 20}])
-    relay._dim_press_at = 0.0
-    r1 = relay.handle_dimmer_press(dry_run=True)
-    assert r1.get("pending") == "single-or-double"
-    r2 = relay.handle_dimmer_press(dry_run=True)
-    assert r2 == {"skipped": False, "dry_run": True, "would": "next",
-                  "player": "moode-sendspin"}
-
-
-def test_dim_press_resolve_stale_is_noop():
-    relay._dim_press_at = 123.0
-    relay._dim_press_resolve(999.0)  # must not raise
+    r = relay.handle_press("dimmer", True, None, "rotate_right_pressed", 1)
+    assert r == {"skipped": False, "dry_run": True, "would": "next",
+                 "player": "moode-sendspin"}
+    r = relay.handle_press("dimmer", True, None, "rotate_left_pressed", 1)
+    assert r == {"skipped": False, "dry_run": True, "would": "previous",
+                 "player": "moode-sendspin"}
