@@ -72,3 +72,31 @@ def test_dry_run_resolves_player_without_mutating_last(monkeypatch, tmp_path):
     assert res == {"toggled": False, "dry_run": True,
                    "would_action": "paused", "player": "moode-sendspin"}
     assert not (tmp_path / "last.json").exists()
+
+
+def _dimmer_player(monkeypatch, volume=20):
+    monkeypatch.setattr(
+        relay, "ma",
+        lambda cmd, args=None, mid="fav", timeout=25: [
+            {"player_id": "moode", "name": "moode-sendspin",
+             "available": True, "state": "playing",
+             "volume_level": volume}])
+
+
+def test_dimmer_rotate_right_scales_by_steps(monkeypatch):
+    _dimmer_player(monkeypatch)
+    res = relay.handle_press("dimmer", True, None, "rotate_right", 3)
+    assert res == {"volume": 26, "target": "moode-sendspin",
+                   "dry_run": True}
+
+
+def test_dimmer_rotate_left_coerces_string_steps(monkeypatch):
+    _dimmer_player(monkeypatch)
+    res = relay.handle_press("dimmer", True, None, "rotate_left", "2")
+    assert res == {"volume": 16, "target": "moode-sendspin",
+                   "dry_run": True}
+
+
+def test_dimmer_unknown_event_is_noop():
+    res = relay.handle_press("dimmer", True, None, "bogus", 1)
+    assert res == {"dimmer": False, "reason": "unknown event"}

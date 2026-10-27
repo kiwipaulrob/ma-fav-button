@@ -37,6 +37,7 @@ ANN_FLOOR = 3    # voice never below this (whispers stay audible)
 LEAN_ENABLE = False  # parked 26 Oct 2026; poll loop stays dormant until True
 LEAN_STEP = 5
 LEAN_POLL_SECONDS = 2
+DIM_STEP = 2  # MA volume points per dimmer rotary step (27 Oct 2026)
 
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO,
@@ -329,7 +330,55 @@ def handle_lean(source, dry_run=False):
     return {"volume": new, "target": target.get("name")}
 
 
-def handle_press(source, dry_run=False, action=None):
+def handle_dimmer(action, steps, dry_run=False):
+    """YLKG08YL rotary: volume step scaled by event steps
+    (delta = steps * DIM_STEP) on the active device."""
+    try:
+        steps = max(1, int(steps))
+    except (TypeError, ValueError):
+        steps = 1
+    delta = steps * DIM_STEP if action == "dim_up" else -steps * DIM_STEP
+    players = ma("players/all", {}, mid="players")
+    target = resolve_active(players, record_last=not dry_run)
+    if target is None:
+        logging.info("source=dimmer %s: no device", action)
+        return {"volume": None, "target": None, "dry_run": dry_run}
+    try:
+        cur = float(target.get("volume_level"))
+    except (TypeError, ValueError):
+        cur = None
+    if cur is None:
+        logging.info("source=dimmer %s: no volume on %s", action,
+                     target.get("name"))
+        return {"volume": None, "target": target.get("name"),
+                "dry_run": dry_run}
+    new = min(100, max(0, round(cur + delta)))
+    if dry_run:
+        return {"volume": new, "target": target.get("name"), "dry_run": True}
+    ma("players/cmd/volume_set",
+       {"player_id": target["player_id"], "volume_level": new}, mid="dimvol")
+    logging.info("source=dimmer %s steps=%s %s->%s player=%s", action, steps,
+                 cur, new, target.get("name"))
+    return {"volume": new, "target": target.get("name")}
+
+
+def handle_press(source, dry_run=False, action=None, event_type=None,
+                   steps=1):
+    if source == "dimmer":
+        # YLKG08YL rotary/button events (27 Oct 2026). press reuses the
+        # button toggle, long_press reuses hold-to-favourite.
+        action = {"rotate_right": "dim_up", "rotate_left": "dim_down",
+                  "rotate_right_pressed": "dim_up",
+                  "rotate_left_pressed": "dim_down",
+                  "press": "toggle", "long_press": "fav"}.get(event_type)
+        if action is None:
+            logging.info("source=dimmer unknown event %s", event_type)
+            return {"dimmer": False, "reason": "unknown event"}
+        if action in ("dim_up", "dim_down"):
+            return handle_dimmer(action, steps, dry_run)
+        if action == "toggle":
+            return handle_toggle(source, dry_run=dry_run)
+        action = "fav"
     if action is None:
         action = {"single": "toggle", "double": "next",
                   "lean_down": "lean", "lean_up": "lean"}.get(source, "fav")
@@ -450,7 +499,9 @@ class H(BaseHTTPRequestHandler):
             with _PRESS_LOCK:
                 res = handle_press(payload.get("source", "?"),
                                    bool(payload.get("dry_run")),
-                                   payload.get("action"))
+                                   payload.get("action"),
+                                   payload.get("event_type"),
+                                   payload.get("steps", 1))
             self._send(200, res)
         except Exception as ex:
             logging.info("press FAILED %s", str(ex)[:200])

@@ -77,3 +77,25 @@
     data:
       source: '{{ trigger.id }}'
   mode: single
+
+# YLKG08YL dimmer -> volume on the active MA player (rotate, step-scaled),
+# play/pause (press), favourite+voice (long press). Mode queued serialises
+# rapid spins so read-modify-write volume steps never race.
+- id: dimmer_rotary_control
+  alias: Dimmer rotary control (YLKG08YL)
+  triggers:
+  - trigger: state
+    entity_id: event.YOUR_DIMMER_EVENT_ENTITY
+    not_from:
+    - unavailable
+    - unknown
+    not_to:
+    - unavailable
+    - unknown
+  actions:
+  - action: rest_command.ma_dimmer
+    data:
+      event_type: "{{ trigger.to_state.attributes.event_type }}"
+      steps: "{{ trigger.to_state.attributes.steps | default(1) }}"
+  mode: queued
+  max: 10

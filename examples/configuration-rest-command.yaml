@@ -7,3 +7,12 @@
     content_type: application/json
     payload: "{\"source\": \"{{ source | default('dashboard') }}\"}"
     timeout: 45
+
+# Second command for the YLKG08YL dimmer (event entity -> relay).
+# Needs the same full HA restart as any rest_command change.
+  ma_dimmer:
+    url: http://RELAY_HOST:8699/fav-button
+    method: post
+    content_type: application/json
+    payload: "{\"source\": \"dimmer\", \"event_type\": \"{{ event_type }}\", \"steps\": {{ steps | default(1) }} }"
+    timeout: 45
