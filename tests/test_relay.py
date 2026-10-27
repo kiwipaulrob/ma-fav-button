@@ -155,5 +155,5 @@ def test_dimmer_long_press_announces_without_favouriting(monkeypatch):
 
     monkeypatch.setattr(relay, "ma", fake_ma)
     res = relay.handle_press("dimmer", False, None, "long_press", 1)
-    assert res["announced"] is True
-    assert "players/add_currently_playing_to_favorites" not in calls
+    assert res["favourited"] is True
+    assert "players/add_currently_playing_to_favorites" in calls
